@@ -1,33 +1,31 @@
-import { defineConfig } from "vite";
-import type { UserConfig } from "vite";
-import { resolve } from "path";
+import { defineConfig } from 'vite';
 
-export default defineConfig(({ command, mode }) => {
-  const config: UserConfig = {
-    build: {
-      rollupOptions: {
-        input: {
-          "tabbed-card": resolve(__dirname, "src/tabbed-card.ts"),
-        },
-        output: {
-          entryFileNames: "[name].js",
-        },
+export default defineConfig({
+  build: {
+    lib: {
+      entry: 'src/tabbed-card.ts',
+      formats: ['es'],
+      fileName: 'tabbed-card',
+    },
+    rollupOptions: {
+      external: [/^lit/, /^custom-card-helpers/],
+    },
+  },
+  define: {
+    'process.env': {},
+  },
+  plugins: [
+    {
+      name: 'add-polyfills',
+      transform(code, id) {
+        if (id.includes('tabbed-card.ts')) {
+          return {
+            code: `import '@webcomponents/scoped-custom-element-registry';\n${code}`,
+            map: null,
+          };
+        }
+        return null;
       },
     },
-  };
-
-  if (command == "build") {
-    if (mode == "development") {
-      return {
-        build: {
-          ...config.build,
-          outDir: "./temp",
-          watch: {},
-          minify: false,
-        },
-      };
-    }
-  }
-
-  return { ...config };
+  ],
 });
