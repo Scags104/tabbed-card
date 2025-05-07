@@ -1,5 +1,6 @@
 import { LitElement, html, PropertyValueMap, nothing } from "lit";
 import { customElement, state, property } from "lit/decorators.js";
+import { ScopedRegistryHost } from '@lit-labs/scoped-registry-mixin';
 import { styleMap } from "lit/directives/style-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import {
@@ -12,6 +13,17 @@ import {
   LovelaceConfig,
 } from "custom-card-helpers";
 import "./tabbed-card-editor";
+
+@customElement('tabbed-card')
+export class TabbedCard extends ScopedRegistryHost(LitElement) {
+  static elementDefinitions = {
+    'mwc-tab-bar': TabBar,
+    'mwc-tab': Tab,
+  };
+
+@property({ attribute: false }) public hass!: HomeAssistant;
+@property() private _config!: CardConfig;
+@query('mwc-tab-bar', true) private _tabBar!: TabBar;
 
 interface mwcTabBarEvent extends Event {
   detail: {
@@ -147,10 +159,39 @@ export class TabbedCard extends LitElement {
     // this._tabs.splice(this._tabs.indexOf(cardElement), 1, newCardElement);
   }
 
+  
   render() {
     if (!this.hass || !this._config || !this._helpers || !this._tabs?.length) {
       return html``;
     }
+
+protected render(): TemplateResult {
+    if (!this._config || !this.hass) {
+      return html``;
+    }
+    return html`
+      <ha-card>
+        <mwc-tab-bar
+          @MDCTabBar:activated=${this._handleTabActivated}
+          .activeIndex=${this._config.options?.defaultTabIndex || 0}
+        >
+          ${this._config.tabs.map((tab: TabConfig, index: number) => {
+            return html`
+              <mwc-tab
+                .label=${tab.attributes?.label}
+                .icon=${tab.attributes?.icon}
+                ?stacked=${tab.attributes?.stacked || this._config.attributes?.stacked}
+                ?minWidth=${tab.attributes?.minWidth || this._config.attributes?.minWidth}
+                ?isMinWidthIndicator=${tab.attributes?.isMinWidthIndicator || this._config.attributes?.isMinWidthIndicator}
+                ?isFadingIndicator=${tab.attributes?.isFadingIndicator || this._config.attributes?.isFadingIndicator}
+              ></mwc-tab>
+            `;
+          })}
+        </mwc-tab-bar>
+        <div class="content">${this._renderTabContent()}</div>
+      </ha-card>
+    `;
+  }
 
     return html`
       <mwc-tab-bar
